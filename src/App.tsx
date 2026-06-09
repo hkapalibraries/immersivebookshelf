@@ -154,7 +154,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 w-[90%] max-w-3xl pointer-events-auto"
+            className="absolute bottom-16 md:bottom-8 left-1/2 -translate-x-1/2 z-20 w-[90%] max-w-3xl pointer-events-auto"
           >
             <div className="flex flex-col md:flex-row gap-6 items-center md:items-end w-full">
               {/* Enlarge Cover & Pop Out of Info Box */}
@@ -215,9 +215,9 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mouse Controls explanation - placed on the right side of the screen (only this part) */}
+      {/* Mouse Controls explanation - placed on the right side of the screen (desktop only) */}
       {!loading && !error && (
-        <div className="absolute right-6 bottom-8 z-10 pointer-events-auto">
+        <div className="hidden md:block absolute right-6 bottom-8 z-10 pointer-events-auto">
           <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-2.5">
             <span className="font-semibold text-slate-800 mr-1">Mouse</span>
             <span><span className="font-bold text-slate-500">L</span> 軸心旋轉</span>
@@ -229,10 +229,18 @@ export default function App() {
         </div>
       )}
 
-      {/* Control Buttons - horizontal single row at bottom center (the rest of the control panel) */}
+      {/* 手機觸控提示 - 只在非打開書籍狀態下與底部按鈕一起出現 */}
       {!loading && !error && !selectedBook && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5">
+        <div className="md:hidden absolute left-1/2 -translate-x-1/2 bottom-9 z-20 pointer-events-auto">
+          <div className="text-[8px] tracking-[0.5px] text-slate-500/70 bg-white/60 px-2.5 py-px rounded-full shadow-sm">拖曳旋轉 • 雙指縮放 • 點擊書籍</div>
+        </div>
+      )}
+
+      {/* Control Buttons - horizontal single row at bottom center 
+          只在「非打開書籍狀態」(!selectedBook) 下顯示，確保手機與桌面都能「一定會顯示」 */}
+      {!loading && !error && !selectedBook && (
+        <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center pointer-events-auto">
+          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5 scale-[0.88] md:scale-100">
             <button 
               title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
               onClick={() => setAutoRotate(!autoRotate)} 
