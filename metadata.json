@@ -1,0 +1,6 @@
+{
+  "name": "毛俊輝相關館藏 | Fredric Mao Related Collection",
+  "description": "An immersive 3D webpage to explore a library of books from a Google Sheet CSV. Fredric Mao related theatrical collection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
