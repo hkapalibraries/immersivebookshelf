@@ -102,30 +102,49 @@ function SceneContents({ books, onSelectBook, selectedBook, autoRotate, onIntera
     if (controlsRef.current) {
       const controls = controlsRef.current;
 
-      // === 軸心轉 (pivot / orbit around shelf center) ===
-      // Instead of flying the camera close to one book (which translates/pans the whole view),
-      // we keep the orbit target fixed at the central axis of the bookshelf.
-      // Then we place the camera on a circle around the center at the book's radial angle.
-      // This gives a consistent "turntable" / axis rotation feel. Left-drag will now orbit around the pillar.
-      const centerY = 2.0; // fixed vertical pivot for the whole shelf (middle height)
-      controls.setTarget(0, centerY, 0, false);
+      // === 正確「放大聚焦」在目標書本 + 之後維持軸心轉 ===
+      // 問題：之前固定 centerY + 相機過高 → 點擊後「聚焦在書本上方」、書本偏在畫面下方。
+      // 解決（兩階段）：
+      // 1. setLookAt 直接看向「書本封面中心」，讓動畫結束後書本完美置中在畫面中央（真正的聚焦目標書本）。
+      //    - 垂直 targetY 使用 bookY - 少量負偏移，讓鏡頭瞄準書本中下部，避免「聚焦在上方」導致書本被推到畫面下方。
+      //    - 水平 outward 偏移讓鏡頭對準封面而非箱體厚度中心。
+      // 2. 動畫結束後（setTimeout）把 orbit target 切回「書架中心軸 + 該書所在 row 高度」(0, bookY, 0)。
+      //    當前畫面不跳，之後左鍵拖曳 / 旋轉按鈕仍以書架為軸心旋轉（維持 軸心轉）。
+      const bookPos = position;
+      const bookY = bookPos.y;
 
-      // Compute the book's current world angle (this accounts for any current shelf group rotation)
-      const bookAngle = Math.atan2(position.x, position.z);
+      const bookAngle = Math.atan2(bookPos.x, bookPos.z);
 
-      // Viewing distance from center (shelf radius ~6, so this puts camera outside looking in)
-      const focusDist = 10.5;
+      // 書本正面（封面）朝外的單位方向
+      const outwardX = Math.sin(bookAngle);
+      const outwardZ = Math.cos(bookAngle);
+
+      // look target：封面稍前方 + 書本高度中心略下方（關鍵修正：負偏移讓書本垂直置中，不會「聚焦在上方」）
+      const targetX = bookPos.x + outwardX * 0.16;
+      const targetZ = bookPos.z + outwardZ * 0.16;
+      const targetY = bookY - 0.06;   // 瞄準書本中下部 → 書本會被帶到畫面中央
+
+      // 較近距離產生明顯「放大聚焦」效果
+      const focusDist = 8.1;
       const camX = Math.sin(bookAngle) * focusDist;
       const camZ = Math.cos(bookAngle) * focusDist;
-      const camY = position.y + 0.9; // slightly above the book's row for nice framing of the cover
 
-      // Move camera to the new position while always looking at the central pivot.
-      // Future rotates (mouse or buttons) will orbit around (0, centerY, 0)
+      // 適度俯角（比之前低一點），從自然角度看封面
+      const camY = bookY + 0.28;
+
+      // 階段一：相機動畫 + 直接看向書本封面中心 → 書本會被置中在畫面
       controls.setLookAt(
         camX, camY, camZ,
-        0, centerY, 0,
-        true // animate
+        targetX, targetY, targetZ,
+        true
       );
+
+      // 階段二：動畫結束後切換旋轉軸心回書架中心（不影響當前畫面）
+      setTimeout(() => {
+        if (controlsRef.current) {
+          controlsRef.current.setTarget(0, bookY, 0, false);
+        }
+      }, 900);
     }
   };
 

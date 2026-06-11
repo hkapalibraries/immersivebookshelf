@@ -3,7 +3,7 @@ import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown } from "lucide-react";
+import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown } from "lucide-react";
 
 export default function App() {
   const [books, setBooks] = useState<BookData[]>([]);
@@ -75,7 +75,7 @@ export default function App() {
             </div>
           </h1>
           <p className="text-slate-600 mt-2 max-w-sm text-sm font-medium">
-            Explore a curated 3D collection of theatrical texts, journals, and production records. Drag to rotate, scroll to zoom.
+            Explore the curated collection records. Drag to rotate, scroll to zoom.
           </p>
           {usingFallback && (
             <div className="mt-2 text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 inline-block">
@@ -90,9 +90,11 @@ export default function App() {
             <Search className="w-5 h-5 text-slate-400 ml-2 shrink-0" />
             <div className="relative w-full flex items-center">
               <input 
+                type="text"
                 list="book-list"
+                autoComplete="off"
                 placeholder="Search or select a book..."
-                className="w-full bg-transparent border-none text-sm text-slate-700 focus:ring-0 outline-none placeholder:text-slate-400 pr-8"
+                className="book-search-input w-full bg-transparent border-none text-sm text-slate-700 focus:ring-0 outline-none placeholder:text-slate-400 pr-10"
                 onChange={(e) => {
                   const book = books.find(b => b.Title === e.target.value);
                   if (book) {
@@ -101,7 +103,8 @@ export default function App() {
                 }}
                 onFocus={(e) => e.target.value = ''}
               />
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 pointer-events-none" />
+              {/* Custom chevron only — native datalist arrow is suppressed via CSS + positioning */}
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-1.5 pointer-events-none z-10" />
               <datalist id="book-list">
                 {books.map((b, i) => (
                   <option key={`opt-${i}`} value={b.Title} />
@@ -215,16 +218,43 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mouse Controls explanation - placed on the right side of the screen (desktop only) */}
+      {/* Mouse Controls explanation - placed on the right side of the screen (desktop only). Now using explicit mouse-left / mouse-right button icons. */}
       {!loading && !error && (
         <div className="hidden md:block absolute right-6 bottom-8 z-10 pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-2.5">
-            <span className="font-semibold text-slate-800 mr-1">Mouse</span>
-            <span><span className="font-bold text-slate-500">L</span> 軸心旋轉</span>
-            <span className="text-slate-300 select-none">·</span>
-            <span><span className="font-bold text-slate-500">R</span> 平移</span>
-            <span className="text-slate-300 select-none">·</span>
-            <span><span className="font-bold text-slate-500">滾輪</span> 縮放</span>
+          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-3">
+            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200/70">
+              <Mouse className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-semibold text-slate-700 tracking-tight">Mouse</span>
+            </div>
+            <div className="flex items-center gap-x-2.5">
+              {/* Mouse Left Button (left side of mouse) for axis rotation */}
+              <div className="flex items-center gap-1" title="滑鼠左鍵 (Mouse Left Button) 拖曳：以書架軸心旋轉">
+                <span className="font-mono text-[9px] font-bold bg-slate-100 text-slate-500 px-1 rounded">L</span>
+                {/* mouse-left icon: mouse outline + vertical button divider + short horizontal mark ONLY on the LEFT button area */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-amber-700">
+                  <path d="M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" />
+                  <path d="M12 2v8" />
+                  <path d="M7.2 5.5 h4.2" />
+                </svg>
+                <span className="text-slate-600">軸心旋轉</span>
+              </div>
+              {/* Mouse Right Button (right side of mouse) for pan */}
+              <div className="flex items-center gap-1" title="滑鼠右鍵 (Mouse Right Button) 拖曳：平移視角">
+                <span className="font-mono text-[9px] font-bold bg-slate-100 text-slate-500 px-1 rounded">R</span>
+                {/* mouse-right icon: mouse outline + vertical button divider + short horizontal mark ONLY on the RIGHT button area */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-amber-700">
+                  <path d="M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" />
+                  <path d="M12 2v8" />
+                  <path d="M13 4.8 h4" />
+                </svg>
+                <span className="text-slate-600">平移</span>
+              </div>
+              {/* Scroll wheel up/down for zoom */}
+              <div className="flex items-center gap-1" title="滾輪 (Scroll Wheel) 上下：縮放">
+                <ArrowUpDown className="w-3.5 h-3.5 text-amber-700" />
+                <span className="text-slate-600">縮放</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

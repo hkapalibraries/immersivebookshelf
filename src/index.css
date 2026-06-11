@@ -5,3 +5,161 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
+
+/* ============================================================
+   NUCLEAR OPTION: COMPLETELY REMOVE the native datalist ▼ triangle.
+   We want ONLY the custom <ChevronDown> (lucide-react) to be visible.
+   Extremely high specificity + every known pseudo-element + !important.
+   This targets the extra triangle the user reported in the pull-down / combobox.
+   ============================================================ */
+
+input[list].book-search-input,
+input[list] {
+  /* Core resets - kill all native form decorations */
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: none !important;
+  background: transparent !important;
+  list-style: none !important;
+  /* Give the custom icon exclusive space on the right (prevents overlap with any leaking native UI) */
+  padding-right: 2.75rem !important;
+  /* Prevent any browser list UI from intruding */
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* === WebKit / Chromium / Edge (PRIMARY source of the extra ▼ triangle for <input list>) === */
+input[list].book-search-input::-webkit-calendar-picker-indicator,
+input[list]::-webkit-calendar-picker-indicator,
+input[list].book-search-input::-webkit-calendar-picker-indicator:hover,
+input[list]::-webkit-calendar-picker-indicator:hover {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: none !important;
+  content: "" !important;
+  box-shadow: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+input[list].book-search-input::-webkit-list-button,
+input[list]::-webkit-list-button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* === Firefox === */
+input[list].book-search-input::-moz-list-bullet,
+input[list]::-moz-list-bullet,
+input[list].book-search-input::-moz-calendar-picker-indicator,
+input[list]::-moz-calendar-picker-indicator {
+  display: none !important;
+}
+
+/* === Microsoft / Edge legacy === */
+input[list].book-search-input::-ms-clear,
+input[list].book-search-input::-ms-expand,
+input[list].book-search-input::-ms-reveal,
+input[list]::-ms-clear,
+input[list]::-ms-expand,
+input[list]::-ms-reveal {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* === Focus / active / hover states (browsers sometimes re-inject the indicator on interaction) === */
+input[list].book-search-input:focus,
+input[list]:focus,
+input[list].book-search-input:active,
+input[list]:active,
+input[list].book-search-input:hover,
+input[list]:hover {
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+}
+
+/* Final safety net: clip + zero-size any remaining calendar indicator */
+input[list].book-search-input::-webkit-calendar-picker-indicator,
+input[list]::-webkit-calendar-picker-indicator {
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Also ensure the datalist doesn't contribute any visual arrow (rare) */
+datalist {
+  display: none !important; /* datalist is never rendered visually; this is just belt-and-suspenders */
+}
+
+/* ============================================================
+   LAST-RESORT / MAXIMUM SPECIFICITY RULES
+   These are intentionally repeated with every possible combination
+   to beat any browser stylesheet or Tailwind injection.
+   The goal is: ZERO native ▼ triangles. Only the custom ChevronDown.
+   ============================================================ */
+input[type="text"].book-search-input[list],
+input.book-search-input[list],
+input[list].book-search-input {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+  background: transparent !important;
+  padding-right: 2.75rem !important;
+}
+
+input[type="text"].book-search-input[list]::-webkit-calendar-picker-indicator,
+input.book-search-input[list]::-webkit-calendar-picker-indicator,
+input[list].book-search-input::-webkit-calendar-picker-indicator,
+input[type="text"][list]::-webkit-calendar-picker-indicator,
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  content: none !important;
+  box-shadow: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(100%) !important;
+}
+
+/* Cover any possible re-insertion on interaction */
+input[type="text"].book-search-input[list]:focus::-webkit-calendar-picker-indicator,
+input.book-search-input[list]:focus::-webkit-calendar-picker-indicator,
+input[list].book-search-input:focus::-webkit-calendar-picker-indicator,
+input[type="text"][list]:focus::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
