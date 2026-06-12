@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown } from "lucide-react";
+import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music } from "lucide-react";
 
 export default function App() {
   const [books, setBooks] = useState<BookData[]>([]);
@@ -12,6 +13,13 @@ export default function App() {
   const [selectedBook, setSelectedBook] = useState<BookData | null>(null);
   const [autoRotate, setAutoRotate] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
+
+  // Jukebox (test audio track)
+  const [isJukeboxPlaying, setIsJukeboxPlaying] = useState(false);
+  const jukeboxAudioRef = useRef<HTMLAudioElement>(null);
+  const JUKEBOX_URL = "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b";
+  const JUKEBOX_TITLE = "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)";
+  const [isJukeboxExpanded, setIsJukeboxExpanded] = useState(false);
 
   useEffect(() => {
     fetchBooks()
@@ -41,6 +49,17 @@ export default function App() {
     setAutoRotate(false);
   };
 
+  const toggleJukebox = () => {
+    const audio = jukeboxAudioRef.current;
+    if (!audio) return;
+    if (isJukeboxPlaying) {
+      audio.pause();
+      setIsJukeboxPlaying(false);
+    } else {
+      audio.play().then(() => setIsJukeboxPlaying(true)).catch((e) => console.error("Jukebox play failed:", e));
+    }
+  };
+
   // Wrapper so we can log exactly what data the clicked/selected book carries (helps debug "success in 3D but panel shows no cover")
   const handleSelectBook = (book: BookData) => {
     console.log(`[App] Selected book: "${book.Title}"`, {
@@ -54,7 +73,7 @@ export default function App() {
   };
 
   return (
-    <div className="w-full h-screen bg-[#f4efe6] text-slate-900 overflow-hidden relative font-sans">
+    <div className="w-full min-h-screen h-[100dvh] bg-[#f4efe6] text-slate-900 overscroll-none relative font-sans">
       {/* Background with fade-out effect */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center opacity-60 pointer-events-none"
@@ -218,6 +237,30 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Jukebox - single test track placed above the Mouse controls (large desktop only, lg+) */}
+      {!loading && !error && (
+        <div className="hidden lg:block absolute right-6 bottom-24 z-10 pointer-events-auto">
+          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-2">
+            <Music className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="font-semibold text-slate-700 tracking-tight text-[9px]">Jukebox</span>
+              <span className="text-slate-500 text-[8px] truncate max-w-[170px]" title={JUKEBOX_TITLE}>
+                {JUKEBOX_TITLE}
+              </span>
+            </div>
+            <button
+              onClick={toggleJukebox}
+              className="ml-1 p-1 rounded-full hover:bg-slate-100 active:bg-slate-200 text-amber-700 transition-colors"
+              title={isJukeboxPlaying ? "Pause audio" : "Play audio"}
+            >
+              {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* (Mobile Jukebox + visual controls + touch hint are now rendered via React Portal to document.body — see the block above near the end of the main return. The original mobile Jukebox block has been removed from here to avoid duplication.) */}
+
       {/* Mouse Controls explanation - placed on the right side of the screen (desktop only). Now using explicit mouse-left / mouse-right button icons. */}
       {!loading && !error && (
         <div className="hidden md:block absolute right-6 bottom-8 z-10 pointer-events-auto">
@@ -259,49 +302,118 @@ export default function App() {
         </div>
       )}
 
-      {/* 手機觸控提示 - 只在非打開書籍狀態下與底部按鈕一起出現 */}
-      {!loading && !error && !selectedBook && (
-        <div className="md:hidden absolute left-1/2 -translate-x-1/2 bottom-9 z-20 pointer-events-auto">
-          <div className="text-[8px] tracking-[0.5px] text-slate-500/70 bg-white/60 px-2.5 py-px rounded-full shadow-sm">拖曳旋轉 • 雙指縮放 • 點擊書籍</div>
-        </div>
-      )}
+      {/* Mobile-persistent UI (visual control bar + touch hint + floating Jukebox) are rendered via React Portal
+          directly into document.body. This is the most reliable way to keep fixed-position controls
+          visible on top of a full-screen Three.js Canvas on real iOS Safari / iPadOS / mobile Chrome,
+          bypassing any stacking contexts or layer promotion caused by the WebGL canvas.
+          The !selectedBook guard is preserved exactly — these only appear when no book detail is open. */}
+      {!loading && !error && !selectedBook && createPortal(
+        <>
+          {/* 手機觸控提示 */}
+          <div className="md:hidden fixed left-1/2 -translate-x-1/2 bottom-44 z-[99999] pointer-events-auto transform-gpu">
+            <div className="text-[8px] tracking-[0.5px] text-slate-500/70 bg-white/60 px-2.5 py-px rounded-full shadow-sm">拖曳旋轉 • 雙指縮放 • 點擊書籍</div>
+          </div>
 
-      {/* Control Buttons - horizontal single row at bottom center 
-          只在「非打開書籍狀態」(!selectedBook) 下顯示，確保手機與桌面都能「一定會顯示」 */}
-      {!loading && !error && !selectedBook && (
-        <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5 scale-[0.88] md:scale-100">
-            <button 
-              title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
-              onClick={() => setAutoRotate(!autoRotate)} 
-              className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
+          {/* Control Buttons - horizontal single row at bottom center (mobile persistent) */}
+          <div className="visual-controls-bar fixed bottom-[calc(12rem+env(safe-area-inset-bottom,0px))] md:bottom-4 md:left-1/2 md:-translate-x-1/2 z-[99999] flex items-center pointer-events-auto max-w-[88vw] transform-gpu [will-change:transform] isolate">
+            <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5 scale-[0.82] md:scale-100 max-w-full min-h-[36px]">
+              <button 
+                title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
+                onClick={() => setAutoRotate(!autoRotate)} 
+                className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
+              >
+                {autoRotate ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
+              </button>
+              <div className="w-px h-3 md:h-3.5 bg-slate-200/80 mx-0.5" />
+              <button title="Rotate Left" onClick={() => handleControl('rotate-left')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ArrowLeft className="w-4 h-4"/>
+              </button>
+              <button title="Rotate Right" onClick={() => handleControl('rotate-right')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ArrowRight className="w-4 h-4"/>
+              </button>
+              <div className="w-px h-3 md:h-3.5 bg-slate-200/80 mx-0.5" />
+              <button title="Elevate Up" onClick={() => handleControl('move-up')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ArrowUp className="w-4 h-4"/>
+              </button>
+              <button title="Elevate Down" onClick={() => handleControl('move-down')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ArrowDown className="w-4 h-4"/>
+              </button>
+              <div className="w-px h-3 md:h-3.5 bg-slate-200/80 mx-0.5" />
+              <button title="Zoom Out" onClick={() => handleControl('zoom-out')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ZoomOut className="w-4 h-4"/>
+              </button>
+              <button title="Zoom In" onClick={() => handleControl('zoom-in')} className="p-1 md:p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                <ZoomIn className="w-4 h-4"/>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile / iPad floating Jukebox (right bottom) — also portaled for the same stacking reliability */}
+          <div className="lg:hidden fixed bottom-28 right-4 z-[99999] pointer-events-auto flex flex-col items-end gap-2">
+            <AnimatePresence>
+              {isJukeboxExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-3 py-2.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[190px]"
+                >
+                  <div className="flex items-start gap-2">
+                    <Music className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0 pr-1">
+                      <div className="font-semibold text-slate-700 text-[10px] tracking-tight">Jukebox</div>
+                      <div className="text-slate-500 text-[9px] leading-snug line-clamp-2 mt-0.5" title={JUKEBOX_TITLE}>
+                        {JUKEBOX_TITLE}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsJukeboxExpanded(false)}
+                      className="text-slate-400 hover:text-slate-700 p-0.5 -mr-1 -mt-1 rounded-full hover:bg-slate-100"
+                      title="Close"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      onClick={toggleJukebox}
+                      className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-[10px] font-medium transition-colors shadow-sm"
+                      title={isJukeboxPlaying ? "Pause" : "Play"}
+                    >
+                      {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      <span>{isJukeboxPlaying ? "暫停" : "播放"}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={() => setIsJukeboxExpanded(!isJukeboxExpanded)}
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-amber-700 hover:bg-white active:scale-[0.92] transition-all"
+              title="Jukebox"
             >
-              {autoRotate ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
-            </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Rotate Left" onClick={() => handleControl('rotate-left')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowLeft className="w-4 h-4"/>
-            </button>
-            <button title="Rotate Right" onClick={() => handleControl('rotate-right')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowRight className="w-4 h-4"/>
-            </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Elevate Up" onClick={() => handleControl('move-up')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowUp className="w-4 h-4"/>
-            </button>
-            <button title="Elevate Down" onClick={() => handleControl('move-down')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowDown className="w-4 h-4"/>
-            </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Zoom Out" onClick={() => handleControl('zoom-out')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ZoomOut className="w-4 h-4"/>
-            </button>
-            <button title="Zoom In" onClick={() => handleControl('zoom-in')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ZoomIn className="w-4 h-4"/>
+              {isJukeboxPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Music className="w-4 h-4" />
+              )}
             </button>
           </div>
-        </div>
+        </>,
+        document.body
       )}
+
+      {/* Hidden <audio> element for the Jukebox test track (controlled via ref + state) */}
+      <audio
+        ref={jukeboxAudioRef}
+        src={JUKEBOX_URL}
+        onPlay={() => setIsJukeboxPlaying(true)}
+        onPause={() => setIsJukeboxPlaying(false)}
+        onEnded={() => setIsJukeboxPlaying(false)}
+      />
     </div>
   );
 }
