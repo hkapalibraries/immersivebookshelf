@@ -13,13 +13,26 @@ export default function App() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
 
-  // Jukebox (test audio track)
+  // Jukebox – minimal playlist (a01, a02, …)
   const [isJukeboxPlaying, setIsJukeboxPlaying] = useState(false);
   const jukeboxAudioRef = useRef<HTMLAudioElement>(null);
-  const JUKEBOX_URL = "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b";
-  const JUKEBOX_TITLE = "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)";
-  // Which audio id the current Jukebox track corresponds to (used for the minimal "前往該書" button)
-  const CURRENT_JUKEBOX_AUDIO_ID = "a01";
+
+  const JUKEBOX_TRACKS = [
+    {
+      id: "a01",
+      title: "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)",
+      url: "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b"
+    },
+    {
+      id: "a02",
+      title: "何謂大眾劇場？(節錄自: 一堂無止境的課：毛俊輝的戲劇人生)",
+      url: "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/minimax_tts_1781252882781.mp3?alt=media&token=c7532cfd-3e01-489a-b571-19a5b76c28ac"
+    }
+  ] as const;
+
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const currentTrack = JUKEBOX_TRACKS[currentTrackIndex];
+
   const [isControlsPanelOpen, setIsControlsPanelOpen] = useState(false);
   const [isJukeboxOpen, setIsJukeboxOpen] = useState(false);
 
@@ -59,6 +72,25 @@ export default function App() {
       setIsJukeboxPlaying(false);
     } else {
       audio.play().then(() => setIsJukeboxPlaying(true)).catch((e) => console.error("Jukebox play failed:", e));
+    }
+  };
+
+  // Switch to another track in the minimal playlist
+  const switchTrack = (index: number) => {
+    if (index === currentTrackIndex) return;
+    const audio = jukeboxAudioRef.current;
+    const wasPlaying = isJukeboxPlaying;
+    if (audio) audio.pause();
+    setCurrentTrackIndex(index);
+    setIsJukeboxPlaying(false);
+
+    if (wasPlaying) {
+      setTimeout(() => {
+        const a = jukeboxAudioRef.current;
+        if (a) {
+          a.play().then(() => setIsJukeboxPlaying(true)).catch((e) => console.error("Jukebox play failed:", e));
+        }
+      }, 50);
     }
   };
 
@@ -336,7 +368,7 @@ export default function App() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="relative bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-3 py-2.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[min(70vw,210px)]"
+                  className="relative bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-4 py-3 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-xs text-slate-600 w-[min(85vw,320px)]"
                 >
                   <button
                     onClick={() => setIsJukeboxOpen(false)}
@@ -345,33 +377,51 @@ export default function App() {
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                  <div className="flex items-start gap-2 pr-5">
-                    <Music className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 pr-6">
+                    <Music className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-slate-700 text-[10px] tracking-tight">Jukebox</div>
-                      <div className="text-slate-500 text-[9px] leading-snug line-clamp-2 mt-0.5" title={JUKEBOX_TITLE}>
-                        {JUKEBOX_TITLE}
+                      <div className="font-semibold text-slate-700 tracking-tight">Jukebox</div>
+                      <div className="text-slate-600 text-sm leading-snug line-clamp-2 mt-0.5" title={currentTrack.title}>
+                        {currentTrack.title}
                       </div>
                     </div>
                   </div>
-                <div className="mt-2 flex justify-end gap-2">
-                  {/* Minimal "前往該書" button – jumps to the book that owns this audio excerpt */}
-                  {books.some(b => b.audio === CURRENT_JUKEBOX_AUDIO_ID) && (
-                    <button
-                      onClick={() => {
-                        const target = books.find(b => b.audio === CURRENT_JUKEBOX_AUDIO_ID);
-                        if (target) handleSelectBook(target); // already closes Jukebox panel
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-300 hover:bg-amber-50 active:bg-amber-100 text-amber-700 text-[10px] font-medium transition-colors"
-                      title="前往對應書本"
-                    >
-                      前往該書
-                    </button>
-                  )}
+
+                  {/* Playlist – clean vertical list with full titles */}
+                  <div className="mt-3 mb-2">
+                    <div className="text-[10px] font-semibold text-slate-400 px-1 mb-1">Playlist</div>
+                    <div className="flex flex-col gap-0.5">
+                      {JUKEBOX_TRACKS.map((track, idx) => (
+                        <button
+                          key={track.id}
+                          onClick={() => switchTrack(idx)}
+                          className={`w-full text-left px-3 py-1.5 rounded-lg border transition-all flex items-center gap-2 ${idx === currentTrackIndex ? "bg-amber-100 border-amber-300 text-amber-900" : "border-transparent hover:bg-amber-50 text-slate-600"}`}
+                        >
+                          <span className="font-mono text-[10px] text-amber-600 w-6 shrink-0">{track.id.toUpperCase()}</span>
+                          <span className="text-xs leading-tight line-clamp-2 pr-1">{track.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex justify-end gap-2">
+                    {/* Minimal "前往該書" button – jumps to the book that owns the current audio excerpt */}
+                    {books.some(b => b.audio === currentTrack.id) && (
+                      <button
+                        onClick={() => {
+                          const target = books.find(b => b.audio === currentTrack.id);
+                          if (target) handleSelectBook(target);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-300 hover:bg-amber-50 active:bg-amber-100 text-amber-700 text-xs font-medium transition-colors"
+                        title="前往對應書本"
+                      >
+                        前往該書
+                      </button>
+                    )}
 
                     <button
                       onClick={toggleJukebox}
-                      className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-[10px] font-medium transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-xs font-medium transition-colors shadow-sm"
                       title={isJukeboxPlaying ? "Pause" : "Play"}
                     >
                       {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -397,10 +447,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Hidden <audio> element for the Jukebox test track (controlled via ref + state) */}
+      {/* Hidden <audio> element – src is reactive to the current playlist track */}
       <audio
         ref={jukeboxAudioRef}
-        src={JUKEBOX_URL}
+        src={currentTrack.url}
         onPlay={() => setIsJukeboxPlaying(true)}
         onPause={() => setIsJukeboxPlaying(false)}
         onEnded={() => setIsJukeboxPlaying(false)}
