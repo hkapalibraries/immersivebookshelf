@@ -242,9 +242,13 @@ export default function App() {
       {/* Two floating buttons centered at the very bottom of the screen (side-by-side).
           Jukebox on the right of the pair, Camera Controls on the left of the pair.
           Cards expand upward above their respective buttons. Hidden when a book overlay is open.
-          Only one card can be open at a time (mutual close on toggle). */}
+          Only one card can be open at a time (mutual close on toggle).
+          Uses safe-area-inset-bottom for iOS devices (iPhone home indicator) + high z-index. */}
       {!loading && !error && !selectedBook && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-auto flex items-end gap-3">
+        <div
+          className="absolute left-1/2 -translate-x-1/2 z-[90] pointer-events-auto flex items-end gap-3"
+          style={{ bottom: `calc(1rem + env(safe-area-inset-bottom, 0px))` }}
+        >
           {/* Camera Controls group */}
           <div className="flex flex-col items-center gap-2">
             <AnimatePresence>
