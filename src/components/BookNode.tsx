@@ -41,7 +41,7 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
   useCursor(hovered);
 
   const bookColor = useMemo(() => stringToColor(book.Title), [book.Title]);
-  const textColor = ["#F2F5EA", "#D6E3F8", "#E0E2DB", "#D2D4C8"].includes(bookColor) ? "#111" : "#fff";
+  const textColor = ["#F2F5EA", "#D6E3F8", "#E0E2DB", "#D2D4C8", "#E3EEF1", "#A3C4BC"].includes(bookColor) ? "#111" : "#fff";
 
   const titleText = book.Title || "Unknown Title";
   // Adaptive font size + conservative maxWidth/lineHeight so long titles (e.g. the 2006.07 season one)

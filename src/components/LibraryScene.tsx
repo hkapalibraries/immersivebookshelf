@@ -149,8 +149,11 @@ function SceneContents({ books, onSelectBook, selectedBook, autoRotate, onIntera
   };
 
   useEffect(() => {
-    // We intentionally do not reset the camera position when selectedBook becomes null
-    // so the user stays exactly where they were looking when they closed the book.
+    // When the user closes the book detail overlay, pull the camera back slightly (small zoom-out).
+    if (!selectedBook && controlsRef.current) {
+      // Negative value = dolly out (zoom out / pull back). Positive would zoom in.
+      controlsRef.current.dolly(-1.8, true);
+    }
   }, [selectedBook]);
 
   useEffect(() => {
