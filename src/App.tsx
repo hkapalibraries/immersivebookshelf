@@ -3,7 +3,7 @@ import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music } from "lucide-react";
+import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music, SlidersHorizontal } from "lucide-react";
 
 export default function App() {
   const [books, setBooks] = useState<BookData[]>([]);
@@ -19,6 +19,7 @@ export default function App() {
   const JUKEBOX_URL = "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b";
   const JUKEBOX_TITLE = "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)";
   const [isJukeboxExpanded, setIsJukeboxExpanded] = useState(false);
+  const [isControlsExpanded, setIsControlsExpanded] = useState(false);
 
   useEffect(() => {
     fetchBooks()
@@ -262,7 +263,7 @@ export default function App() {
           Shows as a compact floating icon. Tap to expand a mini player card above it.
           Hidden on large desktop (lg+) and when a book detail panel is open. */}
       {!loading && !error && !selectedBook && (
-        <div className="lg:hidden absolute bottom-28 right-4 z-40 pointer-events-auto flex flex-col items-end gap-2">
+        <div className="lg:hidden absolute bottom-4 right-4 z-40 pointer-events-auto flex flex-col items-end gap-2">
           {/* Expanded mini player card (animated) */}
           <AnimatePresence>
             {isJukeboxExpanded && (
@@ -320,6 +321,75 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile / iPad floating Controls (left bottom, mirrors Jukebox pattern).
+          Shows a compact floating icon button. Tap to expand a card with the full set of visual controls (rotate, elevate, zoom, auto-rotate).
+          Hidden on md+ (desktop keeps the centered bar) and when a book detail panel is open. */}
+      {!loading && !error && !selectedBook && (
+        <div className="md:hidden absolute bottom-4 left-4 z-40 pointer-events-auto flex flex-col items-start gap-2">
+          {/* Expanded controls card (animated, compact to fit narrow screens) */}
+          <AnimatePresence>
+            {isControlsExpanded && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                transition={{ duration: 0.15 }}
+                className="bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-2 py-2 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[185px]"
+              >
+                <div className="mb-1 px-1">
+                  <span className="font-semibold text-slate-700 text-[10px] tracking-tight">Controls</span>
+                </div>
+
+                {/* Compact replica of the control button row (smaller icons + tighter padding for mobile) */}
+                <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-0.5 shadow-sm flex items-center gap-0.5">
+                  <button 
+                    title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
+                    onClick={() => setAutoRotate(!autoRotate)} 
+                    className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
+                  >
+                    {autoRotate ? <Pause className="w-3 h-3"/> : <Play className="w-3 h-3"/>}
+                  </button>
+                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
+                  <button title="Rotate Left" onClick={() => handleControl('rotate-left')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ArrowLeft className="w-3 h-3"/>
+                  </button>
+                  <button title="Rotate Right" onClick={() => handleControl('rotate-right')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ArrowRight className="w-3 h-3"/>
+                  </button>
+                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
+                  <button title="Elevate Up" onClick={() => handleControl('move-up')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ArrowUp className="w-3 h-3"/>
+                  </button>
+                  <button title="Elevate Down" onClick={() => handleControl('move-down')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ArrowDown className="w-3 h-3"/>
+                  </button>
+                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
+                  <button title="Zoom Out" onClick={() => handleControl('zoom-out')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ZoomOut className="w-3 h-3"/>
+                  </button>
+                  <button title="Zoom In" onClick={() => handleControl('zoom-in')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                    <ZoomIn className="w-3 h-3"/>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Floating icon button. Shows X when the panel is open (tap to close). */}
+          <button
+            onClick={() => setIsControlsExpanded(!isControlsExpanded)}
+            className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-slate-700 hover:bg-white active:scale-[0.92] transition-all"
+            title="Controls"
+          >
+            {isControlsExpanded ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <SlidersHorizontal className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Mouse Controls explanation - placed on the right side of the screen (desktop only). Now using explicit mouse-left / mouse-right button icons. */}
       {!loading && !error && (
         <div className="hidden md:block absolute right-6 bottom-8 z-10 pointer-events-auto">
@@ -368,10 +438,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Control Buttons - horizontal single row at bottom center 
-          固定顯示：只要不是打開書本時 (!selectedBook) 就會出現。已調高 z-index 避免被右侧浮動 Jukebox 遮擋。 */}
+      {/* Control Buttons - horizontal single row at bottom center (desktop md+ only).
+          On mobile/iPad we use a left-side floating expandable panel (like the Jukebox) instead.
+          Always visible when !selectedBook (same guard as before). */}
       {!loading && !error && !selectedBook && (
-        <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-[55] flex items-center pointer-events-auto">
+        <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-[55] hidden md:flex items-center pointer-events-auto">
           <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5 scale-[0.88] md:scale-100">
             <button 
               title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
