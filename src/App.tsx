@@ -3,7 +3,7 @@ import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music, Move } from "lucide-react";
+import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music, Move, SkipBack, SkipForward } from "lucide-react";
 
 export default function App() {
   const [books, setBooks] = useState<BookData[]>([]);
@@ -32,6 +32,10 @@ export default function App() {
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const currentTrack = JUKEBOX_TRACKS[currentTrackIndex];
+
+  // Jukebox player state
+  const [jukeboxCurrentTime, setJukeboxCurrentTime] = useState(0);
+  const [jukeboxDuration, setJukeboxDuration] = useState(0);
 
   const [isControlsPanelOpen, setIsControlsPanelOpen] = useState(false);
   const [isJukeboxOpen, setIsJukeboxOpen] = useState(false);
@@ -83,6 +87,7 @@ export default function App() {
     if (audio) audio.pause();
     setCurrentTrackIndex(index);
     setIsJukeboxPlaying(false);
+    setJukeboxCurrentTime(0);
 
     if (wasPlaying) {
       setTimeout(() => {
@@ -92,6 +97,31 @@ export default function App() {
         }
       }, 50);
     }
+  };
+
+  // Player controls helpers
+  const formatTime = (seconds: number) => {
+    if (!isFinite(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const seekTo = (time: number) => {
+    const audio = jukeboxAudioRef.current;
+    if (!audio) return;
+    audio.currentTime = time;
+    setJukeboxCurrentTime(time);
+  };
+
+  const goToPrevTrack = () => {
+    const newIndex = (currentTrackIndex - 1 + JUKEBOX_TRACKS.length) % JUKEBOX_TRACKS.length;
+    switchTrack(newIndex);
+  };
+
+  const goToNextTrack = () => {
+    const newIndex = (currentTrackIndex + 1) % JUKEBOX_TRACKS.length;
+    switchTrack(newIndex);
   };
 
   // Wrapper so we can log exactly what data the clicked/selected book carries (helps debug "success in 3D but panel shows no cover")
@@ -107,6 +137,33 @@ export default function App() {
     setIsControlsPanelOpen(false);
     setIsJukeboxOpen(false);
   };
+
+  // Attach audio event listeners once the component mounts
+  useEffect(() => {
+    const audio = jukeboxAudioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setJukeboxCurrentTime(audio.currentTime);
+    const onLoadedMetadata = () => {
+      setJukeboxDuration(audio.duration || 0);
+      setJukeboxCurrentTime(audio.currentTime);
+    };
+    const onEnded = () => {
+      setIsJukeboxPlaying(false);
+      // Auto-advance to next track (optional – comment out if you prefer manual)
+      // goToNextTrack();
+    };
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("ended", onEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, []);
 
   return (
     <div className="w-full h-screen bg-[#f4efe6] text-slate-900 overflow-hidden relative font-sans">
@@ -404,6 +461,52 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Player controls: progress + time + prev/play/next */}
+                  <div className="mt-3 pt-2 border-t border-amber-100">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="font-mono text-[10px] text-amber-700 w-9 text-right">{formatTime(jukeboxCurrentTime)}</span>
+
+                      <input
+                        type="range"
+                        min={0}
+                        max={jukeboxDuration || 100}
+                        step={0.1}
+                        value={jukeboxCurrentTime}
+                        onChange={(e) => seekTo(parseFloat(e.target.value))}
+                        className="flex-1 accent-amber-600 cursor-pointer"
+                      />
+
+                      <span className="font-mono text-[10px] text-amber-700 w-9">{formatTime(jukeboxDuration)}</span>
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-center gap-4">
+                      <button
+                        onClick={goToPrevTrack}
+                        className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-full transition-colors"
+                        title="上一首"
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={toggleJukebox}
+                        className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-xs font-medium transition-colors shadow-sm"
+                        title={isJukeboxPlaying ? "Pause" : "Play"}
+                      >
+                        {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                        <span>{isJukeboxPlaying ? "暫停" : "播放"}</span>
+                      </button>
+
+                      <button
+                        onClick={goToNextTrack}
+                        className="p-1.5 text-amber-700 hover:bg-amber-100 rounded-full transition-colors"
+                        title="下一首"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="mt-2 flex justify-end gap-2">
                     {/* Minimal "前往該書" button – jumps to the book that owns the current audio excerpt */}
                     {books.some(b => b.audio === currentTrack.id) && (
@@ -418,15 +521,6 @@ export default function App() {
                         前往該書
                       </button>
                     )}
-
-                    <button
-                      onClick={toggleJukebox}
-                      className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-xs font-medium transition-colors shadow-sm"
-                      title={isJukeboxPlaying ? "Pause" : "Play"}
-                    >
-                      {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      <span>{isJukeboxPlaying ? "暫停" : "播放"}</span>
-                    </button>
                   </div>
                 </motion.div>
               )}
