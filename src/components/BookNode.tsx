@@ -88,30 +88,20 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
 
     let cancelled = false;
 
-    // Detect iOS (iPhone / iPad / iPadOS 13+) to reorder strategies.
-    // iOS Safari is much stricter with WebGL CORS than desktop browsers.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
     // Robust cover loading with fallback:
-    // Desktop: direct → corsproxy.io → allorigins
-    // iOS:   corsproxy.io (優先) → allorigins → direct (最後)
-    // We still verify after every load that the texture is not tainted.
+    // 1. Try direct (fast if the image host properly supports CORS for WebGL textures)
+    // 2. Fallback to corsproxy.io (good for images)
+    // 3. Last resort: allorigins
+    // We now also verify after direct load that the texture is not tainted (which would show as solid black).
+    // This is why you saw "✅ direct" but the cover still appeared black.
     const loadCoverTexture = async () => {
       const originalUrl = book.cover!.trim();
 
-      // On iOS we put corsproxy.io first because iOS Safari often blocks direct loads.
-      const strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = isIOS
-        ? [
-            { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
-            { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
-            null, // direct last on iOS
-          ]
-        : [
-            null, // direct first on desktop
-            { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
-            { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
-          ];
+      const strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = [
+        null, // direct first (with tainted check)
+        { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
+        { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+      ];
 
       for (const strategy of strategies) {
         const urlToLoad = strategy ? strategy.getUrl(originalUrl) : originalUrl;
