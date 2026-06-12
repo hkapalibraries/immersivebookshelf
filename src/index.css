@@ -163,39 +163,3 @@ input[type="text"][list]:focus::-webkit-calendar-picker-indicator {
   width: 0 !important;
   height: 0 !important;
 }
-
-/* ============================================================
-   MOBILE VISUAL CONTROLS BAR - NUCLEAR HARDENING
-   確保「只要不是打開書本」時，底部置中的控制列（自動旋轉、左右旋轉、上下、縮放）
-   在手機 / iPad 上永遠固定可見，不會因為 Three.js Canvas、100dvh、safe-area、
-   動態地址列、home indicator 或 compositing 而「突然消失」。
-   搭配 App.tsx 中的 visual-controls-bar class + 極高 bottom calc 使用。
-   ============================================================ */
-.visual-controls-bar {
-  position: fixed !important;
-  z-index: 99999 !important;
-  pointer-events: auto !important;
-  /* 強制使用與 Tailwind 一致的極高底部距離，遠離瀏覽器底部 chrome */
-  bottom: calc(12rem + env(safe-area-inset-bottom, 0px)) !important;
-  left: 50% !important;
-  /* 完全接管 transform，避免 Tailwind translate 與自訂規則衝突 */
-  transform: translateX(-50%) translateZ(0) !important;
-  will-change: transform, bottom !important;
-  contain: layout paint style !important;
-  /* 確保在極端安全區或短 viewport 下仍有最小可視高度 */
-  min-height: 36px !important;
-}
-
-/* 桌面版不受影響（md 以上恢復正常 bottom + 置中） */
-@media (min-width: 768px) {
-  .visual-controls-bar {
-    bottom: 1rem !important; /* md:bottom-4 */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-  }
-}
-
-/* 額外防禦：當 Canvas 正在渲染或 auto-rotate 時，強制重繪層 */
-.visual-controls-bar > div {
-  contain: layout paint !important;
-}
