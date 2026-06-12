@@ -541,8 +541,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Hidden <audio> element – src is reactive to the current playlist track */}
+      {/* Hidden <audio> element – key forces remount on track change (fixes iOS Safari tainted WebGL texture bug) */}
       <audio
+        key={currentTrack.id}
         ref={jukeboxAudioRef}
         src={currentTrack.url}
         onPlay={() => setIsJukeboxPlaying(true)}
