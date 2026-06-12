@@ -3,7 +3,7 @@ import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music, SlidersHorizontal } from "lucide-react";
+import { Loader2, X, ExternalLink, BookOpen, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, Pause, Search, ChevronDown, Mouse, ArrowUpDown, Music, Move } from "lucide-react";
 
 export default function App() {
   const [books, setBooks] = useState<BookData[]>([]);
@@ -18,8 +18,8 @@ export default function App() {
   const jukeboxAudioRef = useRef<HTMLAudioElement>(null);
   const JUKEBOX_URL = "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b";
   const JUKEBOX_TITLE = "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)";
-  const [isJukeboxExpanded, setIsJukeboxExpanded] = useState(false);
-  const [isControlsExpanded, setIsControlsExpanded] = useState(false);
+  const [isControlsPanelOpen, setIsControlsPanelOpen] = useState(false);
+  const [isJukeboxOpen, setIsJukeboxOpen] = useState(false);
 
   useEffect(() => {
     fetchBooks()
@@ -70,6 +70,8 @@ export default function App() {
     });
     setSelectedBook(book);
     handleInteract();
+    setIsControlsPanelOpen(false);
+    setIsJukeboxOpen(false);
   };
 
   return (
@@ -237,240 +239,140 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Jukebox - single test track placed above the Mouse controls (large desktop only, lg+) */}
-      {!loading && !error && (
-        <div className="hidden lg:block absolute right-6 bottom-24 z-10 pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-2">
-            <Music className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <div className="flex flex-col leading-tight min-w-0">
-              <span className="font-semibold text-slate-700 tracking-tight text-[9px]">Jukebox</span>
-              <span className="text-slate-500 text-[8px] truncate max-w-[170px]" title={JUKEBOX_TITLE}>
-                {JUKEBOX_TITLE}
-              </span>
-            </div>
-            <button
-              onClick={toggleJukebox}
-              className="ml-1 p-1 rounded-full hover:bg-slate-100 active:bg-slate-200 text-amber-700 transition-colors"
-              title={isJukeboxPlaying ? "Pause audio" : "Play audio"}
-            >
-              {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile / iPad floating Jukebox (right bottom). 
-          Shows as a compact floating icon. Tap to expand a mini player card above it.
-          Hidden on large desktop (lg+) and when a book detail panel is open. */}
+      {/* Two floating buttons centered at the very bottom of the screen (side-by-side).
+          Jukebox on the right of the pair, Camera Controls on the left of the pair.
+          Cards expand upward above their respective buttons. Hidden when a book overlay is open.
+          Only one card can be open at a time (mutual close on toggle). */}
       {!loading && !error && !selectedBook && (
-        <div className="lg:hidden absolute bottom-4 right-4 z-40 pointer-events-auto flex flex-col items-end gap-2">
-          {/* Expanded mini player card (animated) */}
-          <AnimatePresence>
-            {isJukeboxExpanded && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-3 py-2.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[190px]"
-              >
-                <div className="flex items-start gap-2">
-                  <Music className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0 pr-1">
-                    <div className="font-semibold text-slate-700 text-[10px] tracking-tight">Jukebox</div>
-                    <div className="text-slate-500 text-[9px] leading-snug line-clamp-2 mt-0.5" title={JUKEBOX_TITLE}>
-                      {JUKEBOX_TITLE}
-                    </div>
-                  </div>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-auto flex items-end gap-3">
+          {/* Camera Controls group */}
+          <div className="flex flex-col items-center gap-2">
+            <AnimatePresence>
+              {isControlsPanelOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="relative bg-white/95 backdrop-blur-xl border border-amber-900/10 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.2)] px-4 py-3 w-[min(92vw,340px)] text-[11px] text-slate-600"
+                >
                   <button
-                    onClick={() => setIsJukeboxExpanded(false)}
-                    className="text-slate-400 hover:text-slate-700 p-0.5 -mr-1 -mt-1 rounded-full hover:bg-slate-100"
+                    onClick={() => setIsControlsPanelOpen(false)}
+                    className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100"
                     title="Close"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                </div>
 
-                <div className="mt-2 flex justify-end">
-                  <button
-                    onClick={toggleJukebox}
-                    className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-[10px] font-medium transition-colors shadow-sm"
-                    title={isJukeboxPlaying ? "Pause" : "Play"}
-                  >
-                    {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    <span>{isJukeboxPlaying ? "暫停" : "播放"}</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <div className="text-[9px] font-semibold text-slate-500 mb-1.5 tracking-wider pr-5">Camera Controls</div>
+                  <div className="flex items-center justify-center flex-wrap gap-1">
+                    {/* Auto-rotate toggle */}
+                    <button
+                      title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"}
+                      onClick={() => setAutoRotate(!autoRotate)}
+                      className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
+                    >
+                      {autoRotate ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
 
-          {/* Floating icon button (always visible on mobile/iPad when no book selected).
-              Shows Pause icon when audio is playing for quick visual feedback. */}
-          <button
-            onClick={() => setIsJukeboxExpanded(!isJukeboxExpanded)}
-            className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-amber-700 hover:bg-white active:scale-[0.92] transition-all"
-            title="Jukebox"
-          >
-            {isJukeboxPlaying ? (
-              <Pause className="w-4 h-4" />
-            ) : (
-              <Music className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-      )}
+                    <div className="w-px h-3.5 bg-slate-200/70 mx-0.5" />
 
-      {/* Mobile / iPad floating Controls (left bottom, mirrors Jukebox pattern).
-          Shows a compact floating icon button. Tap to expand a card with the full set of visual controls (rotate, elevate, zoom, auto-rotate).
-          Hidden on md+ (desktop keeps the centered bar) and when a book detail panel is open. */}
-      {!loading && !error && !selectedBook && (
-        <div className="md:hidden absolute bottom-4 left-4 z-40 pointer-events-auto flex flex-col items-start gap-2">
-          {/* Expanded controls card (animated, compact to fit narrow screens) */}
-          <AnimatePresence>
-            {isControlsExpanded && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-2 py-2 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[185px]"
-              >
-                <div className="mb-1 px-1">
-                  <span className="font-semibold text-slate-700 text-[10px] tracking-tight">Controls</span>
-                </div>
+                    {/* Rotate around shelf axis */}
+                    <button title="Rotate Left" onClick={() => handleControl("rotate-left")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <button title="Rotate Right" onClick={() => handleControl("rotate-right")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
 
-                {/* Compact replica of the control button row (smaller icons + tighter padding for mobile) */}
-                <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-0.5 shadow-sm flex items-center gap-0.5">
-                  <button 
-                    title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
-                    onClick={() => setAutoRotate(!autoRotate)} 
-                    className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
-                  >
-                    {autoRotate ? <Pause className="w-3 h-3"/> : <Play className="w-3 h-3"/>}
-                  </button>
-                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
-                  <button title="Rotate Left" onClick={() => handleControl('rotate-left')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ArrowLeft className="w-3 h-3"/>
-                  </button>
-                  <button title="Rotate Right" onClick={() => handleControl('rotate-right')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ArrowRight className="w-3 h-3"/>
-                  </button>
-                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
-                  <button title="Elevate Up" onClick={() => handleControl('move-up')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ArrowUp className="w-3 h-3"/>
-                  </button>
-                  <button title="Elevate Down" onClick={() => handleControl('move-down')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ArrowDown className="w-3 h-3"/>
-                  </button>
-                  <div className="w-px h-2.5 bg-slate-200/80 mx-0.5" />
-                  <button title="Zoom Out" onClick={() => handleControl('zoom-out')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ZoomOut className="w-3 h-3"/>
-                  </button>
-                  <button title="Zoom In" onClick={() => handleControl('zoom-in')} className="p-0.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-                    <ZoomIn className="w-3 h-3"/>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    <div className="w-px h-3.5 bg-slate-200/70 mx-0.5" />
 
-          {/* Floating icon button. Shows X when the panel is open (tap to close). */}
-          <button
-            onClick={() => setIsControlsExpanded(!isControlsExpanded)}
-            className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-slate-700 hover:bg-white active:scale-[0.92] transition-all"
-            title="Controls"
-          >
-            {isControlsExpanded ? (
-              <X className="w-4 h-4" />
-            ) : (
-              <SlidersHorizontal className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-      )}
+                    {/* Vertical elevate */}
+                    <button title="Elevate Up" onClick={() => handleControl("move-up")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button title="Elevate Down" onClick={() => handleControl("move-down")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
 
-      {/* Mouse Controls explanation - placed on the right side of the screen (desktop only). Now using explicit mouse-left / mouse-right button icons. */}
-      {!loading && !error && (
-        <div className="hidden md:block absolute right-6 bottom-8 z-10 pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full px-3 py-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] text-[10px] text-slate-600 flex items-center gap-x-3">
-            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-200/70">
-              <Mouse className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-700 tracking-tight">Mouse</span>
-            </div>
-            <div className="flex items-center gap-x-2.5">
-              {/* Mouse Left Button (left side of mouse) for axis rotation */}
-              <div className="flex items-center gap-1" title="滑鼠左鍵 (Mouse Left Button) 拖曳：以書架軸心旋轉">
-                <span className="font-mono text-[9px] font-bold bg-slate-100 text-slate-500 px-1 rounded">L</span>
-                {/* mouse-left icon: mouse outline + vertical button divider + short horizontal mark ONLY on the LEFT button area */}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-amber-700">
-                  <path d="M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" />
-                  <path d="M12 2v8" />
-                  <path d="M7.2 5.5 h4.2" />
-                </svg>
-                <span className="text-slate-600">軸心旋轉</span>
-              </div>
-              {/* Mouse Right Button (right side of mouse) for pan */}
-              <div className="flex items-center gap-1" title="滑鼠右鍵 (Mouse Right Button) 拖曳：平移視角">
-                <span className="font-mono text-[9px] font-bold bg-slate-100 text-slate-500 px-1 rounded">R</span>
-                {/* mouse-right icon: mouse outline + vertical button divider + short horizontal mark ONLY on the RIGHT button area */}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-amber-700">
-                  <path d="M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6Z" />
-                  <path d="M12 2v8" />
-                  <path d="M13 4.8 h4" />
-                </svg>
-                <span className="text-slate-600">平移</span>
-              </div>
-              {/* Scroll wheel up/down for zoom */}
-              <div className="flex items-center gap-1" title="滾輪 (Scroll Wheel) 上下：縮放">
-                <ArrowUpDown className="w-3.5 h-3.5 text-amber-700" />
-                <span className="text-slate-600">縮放</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                    <div className="w-px h-3.5 bg-slate-200/70 mx-0.5" />
 
-      {/* 手機觸控提示 - 只在非打開書籍狀態下與底部按鈕一起出現 */}
-      {!loading && !error && !selectedBook && (
-        <div className="md:hidden absolute left-1/2 -translate-x-1/2 bottom-9 z-20 pointer-events-auto">
-          <div className="text-[8px] tracking-[0.5px] text-slate-500/70 bg-white/60 px-2.5 py-px rounded-full shadow-sm">拖曳旋轉 • 雙指縮放 • 點擊書籍</div>
-        </div>
-      )}
+                    {/* Zoom */}
+                    <button title="Zoom Out" onClick={() => handleControl("zoom-out")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <button title="Zoom In" onClick={() => handleControl("zoom-in")} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-      {/* Control Buttons - horizontal single row at bottom center (desktop md+ only).
-          On mobile/iPad we use a left-side floating expandable panel (like the Jukebox) instead.
-          Always visible when !selectedBook (same guard as before). */}
-      {!loading && !error && !selectedBook && (
-        <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-[55] hidden md:flex items-center pointer-events-auto">
-          <div className="bg-white/90 backdrop-blur-md border border-amber-900/10 rounded-full p-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] flex items-center gap-0.5 scale-[0.88] md:scale-100">
-            <button 
-              title={autoRotate ? "Pause Auto-Rotate" : "Start Auto-Rotate"} 
-              onClick={() => setAutoRotate(!autoRotate)} 
-              className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors"
+            {/* Controls trigger button */}
+            <button
+              onClick={() => {
+                setIsControlsPanelOpen(!isControlsPanelOpen);
+                setIsJukeboxOpen(false);
+              }}
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-amber-700 hover:bg-white active:scale-[0.92] transition-all"
+              title="Camera Controls"
             >
-              {autoRotate ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
+              <Move className="w-4 h-4" />
             </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Rotate Left" onClick={() => handleControl('rotate-left')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowLeft className="w-4 h-4"/>
-            </button>
-            <button title="Rotate Right" onClick={() => handleControl('rotate-right')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowRight className="w-4 h-4"/>
-            </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Elevate Up" onClick={() => handleControl('move-up')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowUp className="w-4 h-4"/>
-            </button>
-            <button title="Elevate Down" onClick={() => handleControl('move-down')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ArrowDown className="w-4 h-4"/>
-            </button>
-            <div className="w-px h-3.5 bg-slate-200/80 mx-0.5" />
-            <button title="Zoom Out" onClick={() => handleControl('zoom-out')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ZoomOut className="w-4 h-4"/>
-            </button>
-            <button title="Zoom In" onClick={() => handleControl('zoom-in')} className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-full text-slate-700 transition-colors">
-              <ZoomIn className="w-4 h-4"/>
+          </div>
+
+          {/* Jukebox group */}
+          <div className="flex flex-col items-center gap-2">
+            <AnimatePresence>
+              {isJukeboxOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="relative bg-white/95 backdrop-blur-md border border-amber-900/10 rounded-2xl px-3 py-2.5 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.2)] text-[10px] text-slate-600 w-[min(70vw,210px)]"
+                >
+                  <button
+                    onClick={() => setIsJukeboxOpen(false)}
+                    className="absolute top-1.5 right-1.5 text-slate-400 hover:text-slate-700 p-0.5 rounded-full hover:bg-slate-100"
+                    title="Close"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="flex items-start gap-2 pr-5">
+                    <Music className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-700 text-[10px] tracking-tight">Jukebox</div>
+                      <div className="text-slate-500 text-[9px] leading-snug line-clamp-2 mt-0.5" title={JUKEBOX_TITLE}>
+                        {JUKEBOX_TITLE}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      onClick={toggleJukebox}
+                      className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-[10px] font-medium transition-colors shadow-sm"
+                      title={isJukeboxPlaying ? "Pause" : "Play"}
+                    >
+                      {isJukeboxPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      <span>{isJukeboxPlaying ? "暫停" : "播放"}</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Jukebox trigger button (shows Pause icon while audio playing) */}
+            <button
+              onClick={() => {
+                setIsJukeboxOpen(!isJukeboxOpen);
+                setIsControlsPanelOpen(false);
+              }}
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-amber-900/10 shadow-[0_6px_16px_-4px_rgba(0,0,0,0.18)] flex items-center justify-center text-amber-700 hover:bg-white active:scale-[0.92] transition-all"
+              title="Jukebox"
+            >
+              {isJukeboxPlaying ? <Pause className="w-4 h-4" /> : <Music className="w-4 h-4" />}
             </button>
           </div>
         </div>
