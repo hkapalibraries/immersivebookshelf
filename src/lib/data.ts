@@ -73,6 +73,12 @@ export async function fetchBooks(): Promise<BookData[]> {
             if (!r.cover && r["Cover URL"]) r.cover = r["Cover URL"];
             // also trim obvious junk
             if (r.cover && typeof r.cover === "string" && r.cover.includes("<")) r.cover = "";
+
+            // Normalize optional audio column (a01, a02, …)
+            if (!r.audio && r.Audio) r.audio = r.Audio;
+            if (!r.audio && r["音檔"]) r.audio = r["音檔"];
+            if (!r.audio && r["Audio ID"]) r.audio = r["Audio ID"];
+            if (r.audio && typeof r.audio === "string" && r.audio.includes("<")) r.audio = "";
             return r as BookData;
           });
 

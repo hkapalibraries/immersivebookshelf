@@ -18,6 +18,8 @@ export default function App() {
   const jukeboxAudioRef = useRef<HTMLAudioElement>(null);
   const JUKEBOX_URL = "https://firebasestorage.googleapis.com/v0/b/orientation2026-5dcd5.firebasestorage.app/o/MiniMax_2026-06-02_15_38_52_Mo_sir_2.mp3?alt=media&token=27996fdb-c016-4068-b346-77dbb9e36e0b";
   const JUKEBOX_TITLE = "更上一層樓 (節錄自:九十年代香港劇壇點將錄. 第二輯)";
+  // Which audio id the current Jukebox track corresponds to (used for the minimal "前往該書" button)
+  const CURRENT_JUKEBOX_AUDIO_ID = "a01";
   const [isControlsPanelOpen, setIsControlsPanelOpen] = useState(false);
   const [isJukeboxOpen, setIsJukeboxOpen] = useState(false);
 
@@ -91,8 +93,7 @@ export default function App() {
           <h1 className="text-2xl md:text-3xl font-medium tracking-tight text-slate-900 flex items-start gap-3">
             <BookOpen className="w-8 h-8 text-amber-700 mt-0.5" />
             <div className="flex flex-col leading-tight gap-0.5">
-              <span>毛俊輝相關館藏</span>
-              <span className="text-xl md:text-2xl font-normal tracking-normal text-slate-700">Fredric Mao Related Collection</span>
+              <span className="text-3xl md:text-4xl">Mo Sir談天說藝</span>
             </div>
           </h1>
           <p className="text-slate-600 mt-2 max-w-sm text-sm font-medium">
@@ -353,7 +354,21 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 flex justify-end">
+                <div className="mt-2 flex justify-end gap-2">
+                  {/* Minimal "前往該書" button – jumps to the book that owns this audio excerpt */}
+                  {books.some(b => b.audio === CURRENT_JUKEBOX_AUDIO_ID) && (
+                    <button
+                      onClick={() => {
+                        const target = books.find(b => b.audio === CURRENT_JUKEBOX_AUDIO_ID);
+                        if (target) handleSelectBook(target); // already closes Jukebox panel
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-300 hover:bg-amber-50 active:bg-amber-100 text-amber-700 text-[10px] font-medium transition-colors"
+                      title="前往對應書本"
+                    >
+                      前往該書
+                    </button>
+                  )}
+
                     <button
                       onClick={toggleJukebox}
                       className="inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 text-[10px] font-medium transition-colors shadow-sm"
