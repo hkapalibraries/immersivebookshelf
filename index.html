@@ -7,6 +7,10 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Separate container for the Jukebox <audio> element.
+         This isolates the audio element from the React root on iOS Safari,
+         preventing WebGL texture tainting when the cover and audio come from the same Firebase bucket. -->
+    <div id="jukebox-audio"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

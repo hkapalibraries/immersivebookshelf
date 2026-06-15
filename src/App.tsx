@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { BookData } from "./types";
 import { fetchBooks } from "./lib/data";
 import { LibraryScene } from "./components/LibraryScene";
@@ -541,15 +542,19 @@ export default function App() {
         </div>
       )}
 
-      {/* Hidden <audio> element – key forces remount on track change (fixes iOS Safari tainted WebGL texture bug) */}
-      <audio
-        key={currentTrack.id}
-        ref={jukeboxAudioRef}
-        src={currentTrack.url}
-        onPlay={() => setIsJukeboxPlaying(true)}
-        onPause={() => setIsJukeboxPlaying(false)}
-        onEnded={() => setIsJukeboxPlaying(false)}
-      />
+      {/* Hidden <audio> element rendered via portal into a separate DOM node.
+          This completely isolates the audio security context from the React root / Three.js canvas on iOS Safari. */}
+      {createPortal(
+        <audio
+          key={currentTrack.id}
+          ref={jukeboxAudioRef}
+          src={currentTrack.url}
+          onPlay={() => setIsJukeboxPlaying(true)}
+          onPause={() => setIsJukeboxPlaying(false)}
+          onEnded={() => setIsJukeboxPlaying(false)}
+        />,
+        document.getElementById("jukebox-audio") || document.body
+      )}
     </div>
   );
 }
