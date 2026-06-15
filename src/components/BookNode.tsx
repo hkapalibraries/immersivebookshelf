@@ -104,10 +104,12 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
       const isFirebase = originalUrl.includes("firebasestorage.googleapis.com");
 
       // Build strategy list. On iOS + Firebase we start with corsproxy.io.
+      // We added proxy.cors.sh as an extra reliable fallback for stubborn Firebase images on iOS.
       let strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = [
         null, // direct first (with tainted check)
         { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
         { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+        { label: "proxy.cors.sh", getUrl: (u) => `https://proxy.cors.sh/${encodeURIComponent(u)}` },
       ];
 
       if (isIOS() && isFirebase) {
