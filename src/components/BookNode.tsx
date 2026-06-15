@@ -89,34 +89,39 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
 
+  // Convert Firebase URLs to Cloudinary Fetch for excellent CORS + optimization support on iOS
+  // Cloudinary handles all CORS headers properly and serves optimized images.
+  const convertToCloudinaryUrl = (url: string): string => {
+    const cloudName = "dfzbbhecn";
+    const transformations = "w_400,c_fill,q_auto,f_auto"; // width 400, fill, auto quality, auto format
+    return `https://res.cloudinary.com/${cloudName}/image/fetch/${transformations}/${encodeURIComponent(url)}`;
+  };
+
   useEffect(() => {
     if (!hasCoverUrl) return;
 
     let cancelled = false;
 
     // Robust cover loading with fallback:
-    // 1. Try direct (fast if the image host properly supports CORS for WebGL textures)
-    // 2. Fallback to corsproxy.io (good for images)
-    // 3. Last resort: allorigins
-    // On iOS + Firebase Storage we skip direct load to avoid tainting.
+    // 1. For Firebase images: Try Cloudinary Fetch first (best CORS support on iOS)
+    // 2. Then direct load
+    // 3. Then fallback proxies
     const loadCoverTexture = async () => {
       const originalUrl = book.cover!.trim();
       const isFirebase = originalUrl.includes("firebasestorage.googleapis.com");
 
-      // Build strategy list. On iOS + Firebase we start with corsproxy.io.
-      // We added proxy.cors.sh as an extra reliable fallback for stubborn Firebase images on iOS.
+      // Build strategy list. For Firebase, Cloudinary Fetch is tried first.
+      // Cloudinary properly serves CORS headers for WebGL textures, even on iOS Safari.
       let strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = [
-        null, // direct first (with tainted check)
+        ...(isFirebase ? [{ label: "cloudinary", getUrl: convertToCloudinaryUrl }] : []),
+        null, // direct (with tainted check)
         { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
         { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
         { label: "proxy.cors.sh", getUrl: (u) => `https://proxy.cors.sh/${encodeURIComponent(u)}` },
       ];
 
-      if (isIOS() && isFirebase) {
-        // Skip direct load on iOS for Firebase covers – this is the only reliable workaround
-        // for the WebGL tainting bug that only appears on iPhone/iPad.
-        strategies = strategies.slice(1);
-        console.log(`[BookNode] iOS + Firebase detected for "${book.Title}" – skipping direct load`);
+      if (isFirebase) {
+        console.log(`[BookNode] Firebase image detected for "${book.Title}" – trying Cloudinary Fetch first for iOS compatibility`);
       }
 
       for (const strategy of strategies) {
