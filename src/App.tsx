@@ -184,7 +184,7 @@ export default function App() {
           <h1 className="text-2xl md:text-3xl font-medium tracking-tight text-slate-900 flex items-start gap-3">
             <BookOpen className="w-8 h-8 text-amber-700 mt-0.5" />
             <div className="flex flex-col leading-tight gap-0.5">
-              <span className="text-3xl md:text-4xl">Mo Sir談天說藝</span>
+              <span className="text-3xl md:text-4xl">Mao Sir談天說藝</span>
             </div>
           </h1>
           <p className="text-slate-600 mt-2 max-w-sm text-sm font-medium">
