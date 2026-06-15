@@ -31,7 +31,8 @@ export default function App() {
     }
   ] as const;
 
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  // Default to a01 (index 1 after swapping a01/a02 order)
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(1);
   const currentTrack = JUKEBOX_TRACKS[currentTrackIndex];
 
   // Jukebox player state
