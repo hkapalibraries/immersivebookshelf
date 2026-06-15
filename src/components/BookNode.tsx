@@ -83,6 +83,12 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
     }
   }
 
+  // Detect iOS (iPhone / iPad) – Safari on these devices has stricter WebGL CORS rules
+  // that often taint Firebase Storage images even when they load successfully.
+  const isIOS = () =>
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
+
   useEffect(() => {
     if (!hasCoverUrl) return;
 
@@ -92,16 +98,24 @@ export function BookNode({ book, position, rotation, onClick, index }: BookNodeP
     // 1. Try direct (fast if the image host properly supports CORS for WebGL textures)
     // 2. Fallback to corsproxy.io (good for images)
     // 3. Last resort: allorigins
-    // We now also verify after direct load that the texture is not tainted (which would show as solid black).
-    // This is why you saw "✅ direct" but the cover still appeared black.
+    // On iOS + Firebase Storage we skip direct load to avoid tainting.
     const loadCoverTexture = async () => {
       const originalUrl = book.cover!.trim();
+      const isFirebase = originalUrl.includes("firebasestorage.googleapis.com");
 
-      const strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = [
+      // Build strategy list. On iOS + Firebase we start with corsproxy.io.
+      let strategies: Array<{ label: string; getUrl: (u: string) => string } | null> = [
         null, // direct first (with tainted check)
         { label: "corsproxy.io", getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
         { label: "allorigins", getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
       ];
+
+      if (isIOS() && isFirebase) {
+        // Skip direct load on iOS for Firebase covers – this is the only reliable workaround
+        // for the WebGL tainting bug that only appears on iPhone/iPad.
+        strategies = strategies.slice(1);
+        console.log(`[BookNode] iOS + Firebase detected for "${book.Title}" – skipping direct load`);
+      }
 
       for (const strategy of strategies) {
         const urlToLoad = strategy ? strategy.getUrl(originalUrl) : originalUrl;
